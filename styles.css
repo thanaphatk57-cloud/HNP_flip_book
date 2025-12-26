@@ -4,12 +4,12 @@
   --paper: #f6f0e4;
   --paper-edge: #e8dcc7;
   --cover: #2b2a33;
-  --shadow: rgba(0,0,0,.35);
   --shadow2: rgba(0,0,0,.18);
   --radius: 14px;
 }
 
 *{ box-sizing: border-box; }
+
 body{
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
@@ -17,21 +17,18 @@ body{
   color: #eaeaf0;
 
   /* iPhone-friendly viewport height */
-  min-height: 100svh;   /* stable viewport height */
-  min-height: 100dvh;   /* dynamic viewport height (newer Safari) */
+  min-height: 100svh;
+  min-height: 100dvh;
 
   display:flex;
   align-items:center;
   justify-content:center;
 
-  /* prevent rubber-band weirdness around the whole page */
   overscroll-behavior: none;
 }
 
 .app{
   width: min(1100px, 95vw);
-
-  /* Safe area padding for iPhone notch/home bar */
   padding:
     calc(14px + env(safe-area-inset-top))
     calc(14px + env(safe-area-inset-right))
@@ -52,37 +49,35 @@ body{
   font-size: 20px;
 }
 .hint{
-  opacity: .75;
+  opacity: .7;
   font-size: 13px;
 }
 
 .book-wrap{
   display:flex;
   justify-content:center;
-  padding: 14px 0 10px;
+  padding: 10px 0 8px;
 }
 
 .book{
   position: relative;
 
-  /* Fits iPhone screen without cutting */
+  /* 6:9 ratio (2:3) */
   width: min(92vw, 420px);
-  aspect-ratio: 2 / 3; /* 6:9 */
-
-  /* keep it from getting too tall on small phones */
-  max-height: 78svh;
+  aspect-ratio: 2 / 3;
   height: auto;
+  max-height: 78svh;
 
-  perspective: 1800px; /* slightly reduced feels better on mobile */
+  perspective: 1800px;
   transform-style: preserve-3d;
   filter: drop-shadow(0 18px 26px rgba(0,0,0,.35));
 
-  /* touch feel */
+  /* iPhone gesture reliability */
   -webkit-tap-highlight-color: transparent;
-  touch-action: pan-y;
+  touch-action: none; /* IMPORTANT for swipe */
 }
 
-/* Spine / cover backplate */
+/* Cover / spine backplate */
 .spine{
   position:absolute;
   inset: -10px;
@@ -102,9 +97,10 @@ body{
   transform-origin: left center;
   transition: transform 900ms cubic-bezier(.22,.75,.18,1);
   z-index: 1;
+  cursor: default;
 }
 
-/* Stagger tiny offsets so edges look stacked */
+/* Stacked paper edges */
 .sheet[data-index="0"]{ transform: translateZ(7px); }
 .sheet[data-index="1"]{ transform: translateZ(5px); }
 .sheet[data-index="2"]{ transform: translateZ(3px); }
@@ -122,14 +118,9 @@ body{
     inset 0 0 0 1px rgba(0,0,0,.06);
 }
 
-.page.front{
-  transform: rotateY(0deg);
-}
-.page.back{
-  transform: rotateY(180deg);
-}
+.page.front{ transform: rotateY(0deg); }
+.page.back{ transform: rotateY(180deg); }
 
-/* Paper */
 .paper{
   height:100%;
   padding: 36px 44px;
@@ -144,7 +135,7 @@ body{
     linear-gradient(180deg, var(--paper), #f3eadc 65%, var(--paper-edge));
 }
 
-/* Page edge shadow for realism */
+/* Page edge shading */
 .page::after{
   content:"";
   position:absolute;
@@ -157,6 +148,11 @@ body{
 .page.back::after{
   left:0; right:auto;
   background: linear-gradient(90deg, rgba(0,0,0,.12), rgba(0,0,0,0));
+}
+
+/* Flipped state */
+.sheet.flipped{
+  transform: rotateY(-180deg);
 }
 
 h2{
@@ -175,55 +171,6 @@ p{
   font-style: italic;
 }
 
-/* Flipped state */
-.sheet.flipped{
-  transform: rotateY(-180deg);
-}
-
-/* Make top sheets clickable on right side */
-.sheet{
-  cursor: default;
-}
-.sheet::before{
-  content:"";
-  position:absolute;
-  top:22px; bottom:22px;
-  right:22px;
-  width: 35%;
-  border-radius: var(--radius);
-  background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.06));
-  opacity: .7;
-  pointer-events:none;
-}
-
-/* Controls */
-.controls{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap: 12px;
-  margin-top: 12px;
-}
-button{
-  background: rgba(255,255,255,.08);
-  border: 1px solid rgba(255,255,255,.16);
-  color: #fff;
-  padding: 10px 14px;
-  border-radius: 12px;
-  cursor:pointer;
-  transition: transform .12s ease, background .12s ease;
-}
-button:hover{ background: rgba(255,255,255,.12); }
-button:active{ transform: translateY(1px) scale(.99); }
-.page-indicator{
-  opacity:.85;
-  font-size: 14px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  background: rgba(0,0,0,.22);
-  border: 1px solid rgba(255,255,255,.10);
-}
-
 @media (max-width: 480px){
   .topbar{
     flex-direction: column;
@@ -232,40 +179,14 @@ button:active{ transform: translateY(1px) scale(.99); }
     margin-bottom: 10px;
   }
 
-  .hint{
-    font-size: 12px;
-  }
+  .hint{ font-size: 12px; }
 
-  .page{
-    inset: 16px; /* reduce margins so content fits */
-  }
+  .page{ inset: 16px; }
+  .paper{ padding: 22px 22px; }
 
-  .paper{
-    padding: 22px 22px; /* more compact for phone */
-  }
-
-  h2{
-    font-size: 22px;
-  }
-
+  h2{ font-size: 22px; }
   p{
     font-size: 15px;
     line-height: 1.65;
   }
-
-  .controls{
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  button{
-    padding: 10px 12px;
-  }
-}
-
-.book-wrap{
-  display:flex;
-  justify-content:center;
-  padding: 10px 0 8px;
-  -webkit-overflow-scrolling: touch;
 }
