@@ -99,3 +99,5 @@ window.addEventListener("keydown", (e) => {
 });
 
 updateZ();
+
+alert("script.js loaded ✅");
