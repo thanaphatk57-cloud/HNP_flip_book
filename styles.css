@@ -15,15 +15,28 @@ body{
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
   background: radial-gradient(1200px 800px at 50% 20%, #1b1e27 0%, var(--bg) 55%);
   color: #eaeaf0;
-  min-height: 100vh;
+
+  /* iPhone-friendly viewport height */
+  min-height: 100svh;   /* stable viewport height */
+  min-height: 100dvh;   /* dynamic viewport height (newer Safari) */
+
   display:flex;
   align-items:center;
   justify-content:center;
+
+  /* prevent rubber-band weirdness around the whole page */
+  overscroll-behavior: none;
 }
 
 .app{
   width: min(1100px, 95vw);
-  padding: 18px;
+
+  /* Safe area padding for iPhone notch/home bar */
+  padding:
+    calc(14px + env(safe-area-inset-top))
+    calc(14px + env(safe-area-inset-right))
+    calc(14px + env(safe-area-inset-bottom))
+    calc(14px + env(safe-area-inset-left));
 }
 
 .topbar{
@@ -51,13 +64,22 @@ body{
 
 .book{
   position: relative;
-  width: min(420px, 90vw);
-  aspect-ratio: 2 / 3; /* 6:9 ratio */
+
+  /* Fits iPhone screen without cutting */
+  width: min(92vw, 420px);
+  aspect-ratio: 2 / 3; /* 6:9 */
+
+  /* keep it from getting too tall on small phones */
+  max-height: 78svh;
   height: auto;
 
-  perspective: 2400px;
+  perspective: 1800px; /* slightly reduced feels better on mobile */
   transform-style: preserve-3d;
-  filter: drop-shadow(0 26px 34px rgba(0,0,0,.35));
+  filter: drop-shadow(0 18px 26px rgba(0,0,0,.35));
+
+  /* touch feel */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y;
 }
 
 /* Spine / cover backplate */
@@ -200,4 +222,50 @@ button:active{ transform: translateY(1px) scale(.99); }
   border-radius: 12px;
   background: rgba(0,0,0,.22);
   border: 1px solid rgba(255,255,255,.10);
+}
+
+@media (max-width: 480px){
+  .topbar{
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .hint{
+    font-size: 12px;
+  }
+
+  .page{
+    inset: 16px; /* reduce margins so content fits */
+  }
+
+  .paper{
+    padding: 22px 22px; /* more compact for phone */
+  }
+
+  h2{
+    font-size: 22px;
+  }
+
+  p{
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .controls{
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  button{
+    padding: 10px 12px;
+  }
+}
+
+.book-wrap{
+  display:flex;
+  justify-content:center;
+  padding: 10px 0 8px;
+  -webkit-overflow-scrolling: touch;
 }
