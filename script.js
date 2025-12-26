@@ -1,6 +1,4 @@
 const sheets = Array.from(document.querySelectorAll(".sheet"));
-const prevBtn = document.getElementById("prev");
-const nextBtn = document.getElementById("next");
 const indicator = document.getElementById("indicator");
 const book = document.getElementById("book");
 
@@ -18,8 +16,6 @@ function updateIndicator() {
   // Each sheet = 2 pages (front/back)
   const pageNumber = Math.min(currentSheet * 2 + 1, sheets.length * 2);
   indicator.textContent = `Page ${pageNumber}`;
-  prevBtn.disabled = currentSheet === 0;
-  nextBtn.disabled = currentSheet === sheets.length;
 }
 
 function flipNext() {
@@ -67,8 +63,6 @@ book.addEventListener("wheel", handleScroll, { passive: true });
 /* ---------------------------
    Buttons + keyboard (optional)
 ---------------------------- */
-prevBtn.addEventListener("click", flipPrev);
-nextBtn.addEventListener("click", flipNext);
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") flipNext();
@@ -127,3 +121,4 @@ book.addEventListener("touchend", (e) => {
     touchLocked = false;
   }, 900);
 }, { passive: true });
+
