@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diary Flip</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">My Diary</div>
+      <div class="hint">Click the right page to flip → (Shift+Click flips back)</div>
+    </header>
+
+    <section class="book-wrap" aria-label="Diary book">
+      <div class="book" id="book" role="group" aria-roledescription="book">
+        <!-- Each sheet = two sides (front/back). Add more sheets to extend the diary -->
+        <article class="sheet" data-index="0">
+          <div class="page front">
+            <div class="paper">
+              <h2>Day 1</h2>
+              <p>Dear diary,</p>
+              <p>
+                Today I started building a page-turning website. It feels like a real journal.
+              </p>
+              <p class="signature">— me</p>
+            </div>
+          </div>
+          <div class="page back">
+            <div class="paper">
+              <h2>Day 2</h2>
+              <p>
+                Added a soft shadow and paper texture. Next: sound + handwriting font.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <article class="sheet" data-index="1">
+          <div class="page front">
+            <div class="paper">
+              <h2>Day 3</h2>
+              <p>
+                I can flip forward and backward. This is already pretty cozy.
+              </p>
+            </div>
+          </div>
+          <div class="page back">
+            <div class="paper">
+              <h2>Day 4</h2>
+              <p>
+                Tomorrow: saving entries to localStorage and adding page numbers.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <article class="sheet" data-index="2">
+          <div class="page front">
+            <div class="paper">
+              <h2>Day 5</h2>
+              <p>
+                Last page for now. Add more sheets in the HTML to extend the diary.
+              </p>
+            </div>
+          </div>
+          <div class="page back">
+            <div class="paper">
+              <h2>The End</h2>
+              <p>Thanks for reading.</p>
+            </div>
+          </div>
+        </article>
+
+        <!-- Book cover shine -->
+        <div class="spine" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <footer class="controls">
+      <button id="prev" type="button" aria-label="Previous page">← Prev</button>
+      <div class="page-indicator" id="indicator">Page 1</div>
+      <button id="next" type="button" aria-label="Next page">Next →</button>
+    </footer>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
