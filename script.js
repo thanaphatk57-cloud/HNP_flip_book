@@ -80,3 +80,4 @@ book.addEventListener("touchend", (e) => {
 }, { passive: true });
 
 updateZ();
+
