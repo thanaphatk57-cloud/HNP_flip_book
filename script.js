@@ -1,103 +1,82 @@
-const sheets = Array.from(document.querySelectorAll(".sheet"));
+const leaves = Array.from(document.querySelectorAll(".leaf"));
 const book = document.getElementById("book");
 
-let currentSheet = 0; // 0..sheets.length
+let current = 0;
 
 function updateZ() {
-  // Unflipped sheets stay on top; flipped go behind
-  sheets.forEach((sheet, i) => {
-    const flipped = sheet.classList.contains("flipped");
-    sheet.style.zIndex = flipped ? i : (100 + (sheets.length - i));
+  // unflipped on top, flipped behind
+  leaves.forEach((leaf, i) => {
+    const flipped = leaf.classList.contains("flipped");
+    leaf.style.zIndex = flipped ? (100 + i) : (200 + (leaves.length - i));
   });
 }
 
-function flipNext() {
-  if (currentSheet >= sheets.length) return;
-  sheets[currentSheet].classList.add("flipped");
-  currentSheet += 1;
+function next() {
+  if (current >= leaves.length) return;
+  leaves[current].classList.add("flipped");
+  current += 1;
   updateZ();
 }
 
-function flipPrev() {
-  if (currentSheet <= 0) return;
-  currentSheet -= 1;
-  sheets[currentSheet].classList.remove("flipped");
+function prev() {
+  if (current <= 0) return;
+  current -= 1;
+  leaves[current].classList.remove("flipped");
   updateZ();
 }
 
-/* ---------------------------
-   Desktop: wheel / trackpad
----------------------------- */
-let scrollLocked = false;
+/* Desktop wheel */
+let wheelLock = false;
+book.addEventListener("wheel", (e) => {
+  if (wheelLock) return;
+  if (e.deltaY > 0 && current >= leaves.length) return;
+  if (e.deltaY < 0 && current <= 0) return;
 
-function handleWheel(e) {
-  if (scrollLocked) return;
+  wheelLock = true;
+  if (e.deltaY > 0) next();
+  else prev();
 
-  // Stop at the ends
-  if (e.deltaY > 0 && currentSheet >= sheets.length) return;
-  if (e.deltaY < 0 && currentSheet <= 0) return;
+  setTimeout(() => (wheelLock = false), 900);
+}, { passive: true });
 
-  scrollLocked = true;
-
-  if (e.deltaY > 0) flipNext();
-  else if (e.deltaY < 0) flipPrev();
-
-  setTimeout(() => (scrollLocked = false), 900);
-}
-
-book.addEventListener("wheel", handleWheel, { passive: true });
-
-/* ---------------------------
-   Mobile: swipe
----------------------------- */
-let touchStartX = 0;
-let touchStartY = 0;
-let touchLocked = false;
-const SWIPE_THRESHOLD = 40; // px
-const SWIPE_DIR_RATIO = 1.2; // prefer horizontal
+/* Mobile swipe */
+let startX = 0, startY = 0;
+let touchLock = false;
+const TH = 35;
 
 book.addEventListener("touchstart", (e) => {
-  if (!e.touches || e.touches.length !== 1) return;
-  const t = e.touches[0];
-  touchStartX = t.clientX;
-  touchStartY = t.clientY;
+  const t = e.touches && e.touches[0];
+  if (!t) return;
+  startX = t.clientX;
+  startY = t.clientY;
 }, { passive: true });
 
 book.addEventListener("touchend", (e) => {
-  if (touchLocked) return;
+  if (touchLock) return;
 
   const t = e.changedTouches && e.changedTouches[0];
   if (!t) return;
 
-  const dx = t.clientX - touchStartX;
-  const dy = t.clientY - touchStartY;
+  const dx = t.clientX - startX;
+  const dy = t.clientY - startY;
 
-  const absX = Math.abs(dx);
-  const absY = Math.abs(dy);
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
 
-  if (Math.max(absX, absY) < SWIPE_THRESHOLD) return;
+  if (Math.max(ax, ay) < TH) return;
 
-  touchLocked = true;
+  touchLock = true;
 
-  // Prefer horizontal like real page flip
-  if (absX >= absY * SWIPE_DIR_RATIO) {
-    if (dx < 0) flipNext(); else flipPrev();
+  // prefer horizontal swipe
+  if (ax >= ay) {
+    if (dx < 0) next();
+    else prev();
   } else {
-    // fallback vertical: up next, down prev
-    if (dy < 0) flipNext(); else flipPrev();
+    if (dy < 0) next();
+    else prev();
   }
 
-  setTimeout(() => (touchLocked = false), 900);
+  setTimeout(() => (touchLock = false), 900);
 }, { passive: true });
 
-/* ---------------------------
-   Keyboard (optional desktop)
----------------------------- */
-window.addEventListener("keydown", (e) => {
-  if (e.key === "ArrowRight") flipNext();
-  if (e.key === "ArrowLeft") flipPrev();
-});
-
 updateZ();
-
-alert("script.js loaded ✅");
