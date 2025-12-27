@@ -2,81 +2,530 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f1115" />
-  <title>Diary Flip</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Letter Envelope Interaction</title>
+  <style>
+    :root{
+      --bg: #0f172a;
+      --paper: #f8fafc;
+      --paper-2: #eef2ff;
+      --ink: #0b1220;
+      --shadow: rgba(0,0,0,.25);
+      --env: #f1d6b7;
+      --env-2: #e8c59c;
+      --accent: #a855f7;
+      --radius: 18px;
+      --anim: 520ms;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1200px 700px at 50% 15%, #1e293b 0%, var(--bg) 55%, #060913 100%);
+      color: white;
+      overflow: hidden; /* we simulate scroll */
+      touch-action: none; /* we handle gestures */
+    }
+
+    .app{
+      height: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 18px;
+      position: relative;
+    }
+
+    .phone{
+      width: min(420px, 96vw);
+      height: min(820px, 92vh);
+      border-radius: 28px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 30px 80px rgba(0,0,0,.5);
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(8px);
+    }
+
+    .topbar{
+      position:absolute;
+      top: 0;
+      left:0;
+      right:0;
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      pointer-events:none;
+      z-index: 50;
+    }
+    .badge{
+      font-size: 12px;
+      opacity:.9;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 8px 10px;
+      border-radius: 999px;
+    }
+    .hint{
+      position:absolute;
+      bottom: 14px;
+      left: 14px;
+      right: 14px;
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: rgba(255,255,255,.92);
+      background: rgba(15,23,42,.55);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      z-index: 60;
+      transition: opacity 220ms ease;
+    }
+    .hint.hidden{ opacity: 0; }
+
+    .stage{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    /* Envelope + letter stack container */
+    .stack{
+      width: 280px;
+      height: 210px;
+      position: relative;
+      transform: translateY(40px);
+      transition: transform var(--anim) cubic-bezier(.2,.9,.2,1);
+    }
+
+    /* Envelope */
+    .envelope{
+      position:absolute;
+      left:0; right:0;
+      bottom:0;
+      height: 170px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, var(--env) 0%, var(--env-2) 100%);
+      box-shadow: 0 18px 40px var(--shadow);
+      overflow: hidden;
+      cursor: pointer;
+      user-select:none;
+    }
+
+    /* flap */
+    .flap{
+      position:absolute;
+      left:0; right:0;
+      top:0;
+      height: 110px;
+      background: linear-gradient(180deg, #f7e0c6 0%, #e9caa5 100%);
+      transform-origin: top center;
+      transform: rotateX(0deg);
+      transition: transform var(--anim) cubic-bezier(.2,.9,.2,1);
+      border-bottom: 1px solid rgba(0,0,0,.06);
+      clip-path: polygon(0 0, 100% 0, 50% 92%);
+    }
+
+    .env-front{
+      position:absolute;
+      left:0; right:0;
+      bottom:0;
+      height: 120px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,0) 70%),
+        linear-gradient(180deg, #f2d2ae 0%, #e7c39b 100%);
+      clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%);
+      opacity: .95;
+    }
+
+    .seal{
+      position:absolute;
+      width: 46px;
+      height: 46px;
+      border-radius: 999px;
+      left: 50%;
+      top: 66px;
+      transform: translateX(-50%);
+      background: radial-gradient(circle at 30% 30%, #fff 0%, #f5d0fe 25%, #a855f7 100%);
+      box-shadow: 0 10px 22px rgba(168,85,247,.35);
+      border: 1px solid rgba(255,255,255,.25);
+      opacity: .95;
+    }
+
+    /* folded letters visible inside */
+    .letters{
+      position:absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 42px;
+      height: 210px; /* folded stack space */
+      pointer-events:none;
+      z-index: 2;
+      transform: translateY(0px);
+      transition: transform var(--anim) cubic-bezier(.2,.9,.2,1);
+    }
+
+    .sheet{
+      position:absolute;
+      left:0; right:0;
+      height: 200px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, var(--paper) 0%, #f1f5f9 100%);
+      box-shadow: 0 16px 30px rgba(0,0,0,.22);
+      border: 1px solid rgba(15,23,42,.10);
+      overflow:hidden;
+    }
+    .sheet:nth-child(1){ transform: translateY(0px) rotate(-1.2deg); }
+    .sheet:nth-child(2){ transform: translateY(10px) rotate(0.8deg); background: linear-gradient(180deg, var(--paper-2) 0%, #eef2ff 100%); }
+    .sheet:nth-child(3){ transform: translateY(20px) rotate(-0.5deg); background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); }
+
+    .fold-line{
+      position:absolute;
+      left:0; right:0;
+      top: 50%;
+      height: 1px;
+      background: rgba(15,23,42,.10);
+    }
+
+    /* Full-page letter view (after unfolding) */
+    .viewer{
+      position:absolute;
+      inset: 0;
+      display:flex;
+      align-items:stretch;
+      justify-content:flex-start;
+      z-index: 40;
+      opacity: 0;
+      pointer-events:none;
+      transition: opacity 240ms ease;
+    }
+    .viewer.active{
+      opacity: 1;
+      pointer-events:auto;
+    }
+
+    .pages{
+      display:flex;
+      height: 100%;
+      width: 300%;
+      transform: translateX(0%);
+      transition: transform 380ms cubic-bezier(.2,.9,.2,1);
+    }
+
+    .page{
+      width: 100%;
+      height: 100%;
+      padding: 76px 22px 24px;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 520px at 35% 18%, rgba(168,85,247,.12), transparent 60%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    .page h1{
+      margin: 0 0 10px;
+      font-size: 26px;
+      letter-spacing: -0.02em;
+    }
+    .page p{
+      margin: 10px 0;
+      font-size: 15px;
+      line-height: 1.65;
+      opacity: .92;
+    }
+
+    .pager{
+      position:absolute;
+      top: 14px;
+      right: 14px;
+      padding: 8px 10px;
+      font-size: 12px;
+      border-radius: 999px;
+      background: rgba(15,23,42,.06);
+      border: 1px solid rgba(15,23,42,.10);
+      color: rgba(15,23,42,.75);
+    }
+
+    .navbtns{
+      position:absolute;
+      left: 14px;
+      top: 14px;
+      display:flex;
+      gap: 8px;
+      z-index: 45;
+    }
+    .btn{
+      appearance:none;
+      border: 1px solid rgba(15,23,42,.12);
+      background: rgba(255,255,255,.75);
+      color: rgba(15,23,42,.75);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      cursor:pointer;
+      backdrop-filter: blur(8px);
+    }
+
+    /* State machine styles */
+    body[data-state="closed"] .flap{ transform: rotateX(0deg); }
+    body[data-state="opened"] .flap{ transform: rotateX(140deg); }
+    body[data-state="pulled"] .flap{ transform: rotateX(140deg); }
+    body[data-state="unfolded"] .flap{ transform: rotateX(140deg); }
+
+    body[data-state="closed"] .letters{ transform: translateY(0px); }
+    body[data-state="opened"] .letters{ transform: translateY(-22px); }  /* slightly visible */
+    body[data-state="pulled"] .letters{ transform: translateY(140px); }  /* slide out */
+    body[data-state="unfolded"] .stack{ transform: translateY(80px) scale(.92); opacity:.0; transition: opacity 240ms ease, transform var(--anim) cubic-bezier(.2,.9,.2,1); }
+
+    /* Accessibility helpers */
+    .sr-only{
+      position:absolute;
+      width:1px; height:1px;
+      padding:0; margin:-1px;
+      overflow:hidden; clip:rect(0,0,0,0);
+      white-space:nowrap; border:0;
+    }
+  </style>
 </head>
 
-<body>
-  <main class="app">
-    <header class="topbar">
-      <div class="brand">My Diary</div>
-      <div class="hint">Swipe →</div>
-    </header>
+<body data-state="closed">
+  <div class="app">
+    <div class="phone" id="phone">
+      <div class="topbar">
+        <div class="badge" id="stateBadge">State: closed</div>
+        <div class="badge" id="gestureBadge">Gesture: —</div>
+      </div>
 
-    <section class="book-wrap" aria-label="Diary book">
-      <div class="book" id="book" role="group" aria-roledescription="book">
-
-        <article class="leaf" data-index="0">
-          <div class="page">
-            <div class="paper">
-              <h2>Day 1</h2>
-              <p>Dear diary,</p>
-              <p>Today I started building a page-turning website.</p>
+      <div class="stage">
+        <div class="stack" id="stack">
+          <div class="letters" id="letters">
+            <div class="sheet">
+              <div class="fold-line"></div>
+            </div>
+            <div class="sheet">
+              <div class="fold-line"></div>
+            </div>
+            <div class="sheet">
+              <div class="fold-line"></div>
             </div>
           </div>
-        </article>
 
-        <article class="leaf" data-index="1">
-          <div class="page">
-            <div class="paper">
-              <h2>Day 2</h2>
-              <p>Added a soft shadow and paper texture.</p>
-            </div>
+          <div class="envelope" id="envelope" role="button" aria-label="Open the envelope" tabindex="0">
+            <div class="flap"></div>
+            <div class="seal" aria-hidden="true"></div>
+            <div class="env-front"></div>
+            <span class="sr-only">Tap to open envelope</span>
           </div>
-        </article>
+        </div>
+      </div>
 
-        <article class="leaf" data-index="2">
-          <div class="page">
-            <div class="paper">
-              <h2>Day 3</h2>
-              <p>Flip works on swipe.</p>
-            </div>
-          </div>
-        </article>
+      <!-- Full-page letter viewer -->
+      <div class="viewer" id="viewer">
+        <div class="navbtns">
+          <button class="btn" id="backBtn">Back</button>
+          <button class="btn" id="resetBtn">Reset</button>
+        </div>
+        <div class="pager" id="pager">1 / 3</div>
 
-        <article class="leaf" data-index="3">
-          <div class="page">
-            <div class="paper">
-              <h2>Day 4</h2>
-              <p>More content…</p>
-            </div>
-          </div>
-        </article>
+        <div class="pages" id="pages">
+          <section class="page">
+            <h1>Your first page ✨</h1>
+            <p>
+              Replace this text with your message. This is the page shown after the letter unfolds.
+            </p>
+            <p>
+              Swipe <b>left/right</b> to change pages. Use <b>Back</b> to return to the envelope.
+            </p>
+          </section>
 
-        <article class="leaf" data-index="4">
-          <div class="page">
-            <div class="paper">
-              <h2>Day 5</h2>
-              <p>More content…</p>
-            </div>
-          </div>
-        </article>
+          <section class="page">
+            <h1>Second page</h1>
+            <p>
+              Put more content here—photos, memories, or a longer note.
+            </p>
+            <p>
+              Tip: You can style this like handwriting by changing the font.
+            </p>
+          </section>
 
-        <article class="leaf" data-index="5">
-          <div class="page">
-            <div class="paper">
-              <h2>The End</h2>
-              <p>Thanks for reading.</p>
-            </div>
-          </div>
-        </article>
+          <section class="page">
+            <h1>Third page</h1>
+            <p>
+              Final page. Add a signature, date, or call-to-action here.
+            </p>
+          </section>
+        </div>
+      </div>
 
-      </div> <!-- /book -->
-    </section>
-  </main>
+      <div class="hint" id="hint">
+        <b>How to interact</b><br/>
+        Tap envelope → scroll down (drag down) to pull letters → swipe up to unfold → swipe left/right for pages.
+      </div>
+    </div>
+  </div>
 
-  <script src="script.js"></script>
+  <script>
+    (function(){
+      const body = document.body;
+      const envelope = document.getElementById('envelope');
+      const viewer = document.getElementById('viewer');
+      const pages = document.getElementById('pages');
+      const pager = document.getElementById('pager');
+      const stateBadge = document.getElementById('stateBadge');
+      const gestureBadge = document.getElementById('gestureBadge');
+      const hint = document.getElementById('hint');
+      const backBtn = document.getElementById('backBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const phone = document.getElementById('phone');
+
+      let state = body.dataset.state; // closed | opened | pulled | unfolded
+      let pageIndex = 0;              // 0..2
+
+      function setState(next){
+        state = next;
+        body.dataset.state = next;
+        stateBadge.textContent = `State: ${next}`;
+        hint.classList.toggle('hidden', next === 'unfolded');
+        if(next === 'unfolded'){
+          viewer.classList.add('active');
+        } else {
+          viewer.classList.remove('active');
+        }
+      }
+
+      function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+      function setPage(i){
+        pageIndex = clamp(i, 0, 2);
+        pages.style.transform = `translateX(-${pageIndex * 33.3333}%)`;
+        pager.textContent = `${pageIndex + 1} / 3`;
+      }
+
+      function resetAll(){
+        setPage(0);
+        setState('closed');
+      }
+
+      // Envelope open via click/keyboard
+      function openEnvelope(){
+        if(state === 'closed') setState('opened');
+      }
+
+      envelope.addEventListener('click', openEnvelope);
+      envelope.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter' || e.key === ' ') openEnvelope();
+      });
+
+      backBtn.addEventListener('click', ()=>{
+        // Go back to pulled state so user can re-unfold by swiping up again
+        setState('pulled');
+      });
+
+      resetBtn.addEventListener('click', resetAll);
+
+      // Gesture handling (touch + mouse)
+      let startX = 0, startY = 0, lastX = 0, lastY = 0;
+      let isDown = false;
+      let moved = false;
+
+      function onDown(x, y){
+        isDown = true;
+        moved = false;
+        startX = lastX = x;
+        startY = lastY = y;
+      }
+
+      function onMove(x, y){
+        if(!isDown) return;
+        const dx = x - startX;
+        const dy = y - startY;
+        lastX = x; lastY = y;
+
+        if(Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
+
+        // Simulate "scroll down" (pull letters) when state is opened
+        if(state === 'opened'){
+          if(dy > 60){
+            gestureBadge.textContent = 'Gesture: pull down';
+            setState('pulled');
+          }
+        }
+
+        // When unfolded, we don't follow move; we just interpret swipe on release
+      }
+
+      function onUp(){
+        if(!isDown) return;
+        isDown = false;
+
+        const dx = lastX - startX;
+        const dy = lastY - startY;
+
+        // If user didn't move, ignore
+        if(!moved){
+          gestureBadge.textContent = 'Gesture: tap';
+          return;
+        }
+
+        // Swipe up to unfold after pulled
+        if(state === 'pulled' && dy < -60){
+          gestureBadge.textContent = 'Gesture: swipe up';
+          setState('unfolded');
+          return;
+        }
+
+        // Swipe left/right for pages when unfolded
+        if(state === 'unfolded' && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60){
+          if(dx < 0){
+            gestureBadge.textContent = 'Gesture: swipe left';
+            setPage(pageIndex + 1);
+          } else {
+            gestureBadge.textContent = 'Gesture: swipe right';
+            setPage(pageIndex - 1);
+          }
+          return;
+        }
+
+        // If user swipes down while pulled, let them "re-seat" letters (optional)
+        if(state === 'pulled' && dy > 80){
+          gestureBadge.textContent = 'Gesture: swipe down';
+          setState('opened');
+          return;
+        }
+
+        gestureBadge.textContent = 'Gesture: —';
+      }
+
+      // Touch
+      phone.addEventListener('touchstart', (e)=>{
+        if(e.touches.length !== 1) return;
+        const t = e.touches[0];
+        onDown(t.clientX, t.clientY);
+      }, {passive:true});
+
+      phone.addEventListener('touchmove', (e)=>{
+        if(e.touches.length !== 1) return;
+        const t = e.touches[0];
+        onMove(t.clientX, t.clientY);
+      }, {passive:true});
+
+      phone.addEventListener('touchend', onUp, {passive:true});
+
+      // Mouse (desktop)
+      phone.addEventListener('mousedown', (e)=> onDown(e.clientX, e.clientY));
+      window.addEventListener('mousemove', (e)=> onMove(e.clientX, e.clientY));
+      window.addEventListener('mouseup', onUp);
+
+      // Init
+      setPage(0);
+      setState('closed');
+    })();
+  </script>
 </body>
 </html>
