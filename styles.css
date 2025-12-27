@@ -113,9 +113,7 @@ body{
   overflow:hidden;
   background: var(--paper);
   color: var(--ink);
-  box-shadow:
-    0 12px 22px var(--shadow2),
-    inset 0 0 0 1px rgba(0,0,0,.06);
+  box-shadow: 0 12px 22px var(--shadow2);
 }
 
 .page.front{ transform: rotateY(0deg); }
@@ -190,3 +188,4 @@ p{
     line-height: 1.65;
   }
 }
+
