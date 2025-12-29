@@ -3,90 +3,106 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Letter Envelope Interaction</title>
+  <title>Envelope Letters Prototype</title>
   <style>
     :root{
-      --bg: #0f172a;
-      --paper: #f8fafc;
-      --paper-2: #eef2ff;
-      --ink: #0b1220;
-      --shadow: rgba(0,0,0,.25);
-      --env: #f1d6b7;
-      --env-2: #e8c59c;
-      --accent: #a855f7;
-      --radius: 18px;
+      /* Match reference: dark stage + warm beige paper */
+      --bg0:#0d0d0f;
+      --bg1:#141417;
+
+      --env:#efd9c6;
+      --env2:#e9cfba;
+      --envEdge: rgba(0,0,0,.12);
+
+      --paper:#f6efe8;
+      --paper2:#f3e8df;
+      --paperEdge: rgba(0,0,0,.10);
+
+      --ink:#1b1b1f;
+
+      --shadow: rgba(0,0,0,.35);
+      --soft: rgba(0,0,0,.22);
+
+      --radius: 14px;
       --anim: 520ms;
     }
 
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background: radial-gradient(1200px 700px at 50% 15%, #1e293b 0%, var(--bg) 55%, #060913 100%);
-      color: white;
-      overflow: hidden; /* we simulate scroll */
-      touch-action: none; /* we handle gestures */
+      background: radial-gradient(1200px 700px at 50% 15%, #1b1b20 0%, var(--bg1) 45%, var(--bg0) 100%);
+      color:#fff;
+      overflow:hidden;          /* prevent real scroll */
+      touch-action:none;        /* gestures handled manually */
     }
 
     .app{
-      height: 100%;
+      height:100%;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding: 18px;
-      position: relative;
+      padding:18px;
+      position:relative;
     }
 
-    .phone{
-      width: min(420px, 96vw);
-      height: min(820px, 92vh);
-      border-radius: 28px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.08);
-      box-shadow: 0 30px 80px rgba(0,0,0,.5);
-      overflow: hidden;
-      position: relative;
-      backdrop-filter: blur(8px);
+    /* simple “canvas”, not a glass phone */
+    .canvas{
+      width:min(980px, 98vw);
+      height:min(560px, 92vh);
+      position:relative;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.00));
+      border: 1px solid rgba(255,255,255,.06);
+      overflow:hidden;
     }
 
-    .topbar{
+    .hud{
       position:absolute;
-      top: 0;
-      left:0;
-      right:0;
-      padding: 14px 16px;
+      top:12px;
+      left:12px;
+      right:12px;
       display:flex;
-      align-items:center;
       justify-content:space-between;
+      align-items:center;
+      gap:12px;
       pointer-events:none;
-      z-index: 50;
+      z-index:50;
+      opacity:.92;
     }
-    .badge{
-      font-size: 12px;
-      opacity:.9;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.10);
-      padding: 8px 10px;
-      border-radius: 999px;
+    .pill{
+      pointer-events:none;
+      font-size:12px;
+      padding:8px 10px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.08);
+      backdrop-filter: blur(6px);
     }
+
     .hint{
       position:absolute;
-      bottom: 14px;
-      left: 14px;
-      right: 14px;
-      padding: 10px 12px;
-      font-size: 12px;
-      line-height: 1.35;
-      color: rgba(255,255,255,.92);
-      background: rgba(15,23,42,.55);
+      left:50%;
+      transform:translateX(-50%);
+      bottom:14px;
+      z-index:60;
+      font-size:12px;
+      line-height:1.35;
+      padding:10px 12px;
+      border-radius:12px;
+      background: rgba(0,0,0,.28);
       border: 1px solid rgba(255,255,255,.10);
-      border-radius: 14px;
-      z-index: 60;
+      color: rgba(255,255,255,.92);
       transition: opacity 220ms ease;
+      max-width:min(720px, 92%);
+      text-align:center;
     }
-    .hint.hidden{ opacity: 0; }
+    .hint.hidden{ opacity:0; }
 
+    /* =========================
+       Envelope + letters stage
+       ========================= */
     .stage{
       position:absolute;
       inset:0;
@@ -95,277 +111,297 @@
       justify-content:center;
     }
 
-    /* Envelope + letter stack container */
     .stack{
-      width: 280px;
-      height: 210px;
-      position: relative;
-      transform: translateY(40px);
-      transition: transform var(--anim) cubic-bezier(.2,.9,.2,1);
+      width: 640px;
+      height: 260px;
+      position:relative;
     }
 
-    /* Envelope */
-    .envelope{
-      position:absolute;
-      left:0; right:0;
-      bottom:0;
-      height: 170px;
-      border-radius: 20px;
-      background: linear-gradient(180deg, var(--env) 0%, var(--env-2) 100%);
-      box-shadow: 0 18px 40px var(--shadow);
-      overflow: hidden;
-      cursor: pointer;
-      user-select:none;
-    }
-
-    /* flap */
-    .flap{
-      position:absolute;
-      left:0; right:0;
-      top:0;
-      height: 110px;
-      background: linear-gradient(180deg, #f7e0c6 0%, #e9caa5 100%);
-      transform-origin: top center;
-      transform: rotateX(0deg);
-      transition: transform var(--anim) cubic-bezier(.2,.9,.2,1);
-      border-bottom: 1px solid rgba(0,0,0,.06);
-      clip-path: polygon(0 0, 100% 0, 50% 92%);
-    }
-
-    .env-front{
-      position:absolute;
-      left:0; right:0;
-      bottom:0;
-      height: 120px;
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.15) 0%, rgba(255,255,255,0) 70%),
-        linear-gradient(180deg, #f2d2ae 0%, #e7c39b 100%);
-      clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%);
-      opacity: .95;
-    }
-
-    .seal{
-      position:absolute;
-      width: 46px;
-      height: 46px;
-      border-radius: 999px;
-      left: 50%;
-      top: 66px;
-      transform: translateX(-50%);
-      background: radial-gradient(circle at 30% 30%, #fff 0%, #f5d0fe 25%, #a855f7 100%);
-      box-shadow: 0 10px 22px rgba(168,85,247,.35);
-      border: 1px solid rgba(255,255,255,.25);
-      opacity: .95;
-    }
-
-    /* folded letters visible inside */
+    /* Letters (folded stack) */
     .letters{
       position:absolute;
-      left: 18px;
-      right: 18px;
-      bottom: 42px;
-      height: 210px; /* folded stack space */
-      pointer-events:none;
+      left: 210px;
+      top: 36px;
+      width: 220px;
+      height: 200px;
       z-index: 2;
       transform: translateY(0px);
-      transition: transform var(--anim) cubic-bezier(.2,.9,.2,1);
+      will-change: transform;
     }
 
     .sheet{
       position:absolute;
-      left:0; right:0;
-      height: 200px;
-      border-radius: 16px;
-      background: linear-gradient(180deg, var(--paper) 0%, #f1f5f9 100%);
-      box-shadow: 0 16px 30px rgba(0,0,0,.22);
-      border: 1px solid rgba(15,23,42,.10);
+      inset:0;
+      border-radius: 10px;
+      background: linear-gradient(180deg, var(--paper) 0%, var(--paper2) 100%);
+      border: 1px solid var(--paperEdge);
+      box-shadow: 0 14px 28px var(--soft);
       overflow:hidden;
     }
-    .sheet:nth-child(1){ transform: translateY(0px) rotate(-1.2deg); }
-    .sheet:nth-child(2){ transform: translateY(10px) rotate(0.8deg); background: linear-gradient(180deg, var(--paper-2) 0%, #eef2ff 100%); }
-    .sheet:nth-child(3){ transform: translateY(20px) rotate(-0.5deg); background: linear-gradient(180deg, #fff 0%, #f8fafc 100%); }
+    .sheet:nth-child(1){ transform: translateY(0px); }
+    .sheet:nth-child(2){ transform: translateY(9px); opacity:.98; }
+    .sheet:nth-child(3){ transform: translateY(18px); opacity:.96; }
 
-    .fold-line{
+    /* subtle lines like reference */
+    .lines{
+      position:absolute;
+      left:18px; right:18px;
+      top:18px; bottom:18px;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(27,27,31,.10) 0px,
+          rgba(27,27,31,.10) 1px,
+          transparent 1px,
+          transparent 10px
+        );
+      opacity:.55;
+    }
+
+    /* Envelope body */
+    .envelope{
+      position:absolute;
+      left: 165px;
+      top: 78px;
+      width: 310px;
+      height: 175px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, var(--env) 0%, var(--env2) 100%);
+      border: 1px solid var(--envEdge);
+      box-shadow: 0 18px 34px var(--shadow);
+      cursor:pointer;
+      user-select:none;
+      z-index: 3;
+      overflow:hidden;
+    }
+
+    /* Front “X” fold impression like the reference */
+    .env-front{
+      position:absolute;
+      inset:0;
+      opacity:.95;
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.10), transparent 42%),
+        linear-gradient(-135deg, rgba(255,255,255,.08), transparent 42%);
+      clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%);
+    }
+
+    /* Bottom pocket lip */
+    .env-lip{
       position:absolute;
       left:0; right:0;
-      top: 50%;
-      height: 1px;
-      background: rgba(15,23,42,.10);
+      bottom:0;
+      height: 64px;
+      background: linear-gradient(180deg, rgba(0,0,0,.02), rgba(0,0,0,.06));
+      border-top: 1px solid rgba(0,0,0,.06);
     }
 
-    /* Full-page letter view (after unfolding) */
+    /* Top flap (triangle) */
+    .flap{
+      position:absolute;
+      left:0; right:0;
+      top:-1px;
+      height: 110px;
+      background: linear-gradient(180deg, #f6e7da 0%, #ead2bd 100%);
+      border-bottom: 1px solid rgba(0,0,0,.06);
+      transform-origin: top center;
+      transform: rotateX(0deg);
+      transition: transform var(--anim) cubic-bezier(.2,.9,.2,1);
+      clip-path: polygon(0 0, 100% 0, 50% 85%);
+      z-index: 4;
+    }
+
+    /* envelope “press” feedback */
+    .envelope:active{
+      transform: scale(.985);
+    }
+
+    /* =========================
+       Unfolded full-page viewer
+       ========================= */
     .viewer{
       position:absolute;
-      inset: 0;
-      display:flex;
-      align-items:stretch;
-      justify-content:flex-start;
-      z-index: 40;
-      opacity: 0;
+      inset:0;
+      opacity:0;
       pointer-events:none;
       transition: opacity 240ms ease;
+      z-index: 20;
     }
     .viewer.active{
-      opacity: 1;
+      opacity:1;
       pointer-events:auto;
     }
 
     .pages{
+      height:100%;
       display:flex;
-      height: 100%;
-      width: 300%;
+      width:300%;
       transform: translateX(0%);
       transition: transform 380ms cubic-bezier(.2,.9,.2,1);
     }
 
     .page{
-      width: 100%;
-      height: 100%;
-      padding: 76px 22px 24px;
+      width:100%;
+      height:100%;
+      background: linear-gradient(180deg, #fbf6f1 0%, #f5eee7 100%);
       color: var(--ink);
-      background:
-        radial-gradient(900px 520px at 35% 18%, rgba(168,85,247,.12), transparent 60%),
-        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      padding: 64px 40px 36px;
+      position:relative;
     }
 
     .page h1{
-      margin: 0 0 10px;
-      font-size: 26px;
+      margin:0 0 12px;
+      font-size: 30px;
       letter-spacing: -0.02em;
+      font-weight: 700;
     }
     .page p{
-      margin: 10px 0;
-      font-size: 15px;
-      line-height: 1.65;
-      opacity: .92;
+      margin: 12px 0;
+      line-height: 1.7;
+      font-size: 16px;
+      opacity: .9;
+      max-width: 70ch;
     }
 
-    .pager{
+    .top-controls{
       position:absolute;
       top: 14px;
-      right: 14px;
-      padding: 8px 10px;
-      font-size: 12px;
-      border-radius: 999px;
-      background: rgba(15,23,42,.06);
-      border: 1px solid rgba(15,23,42,.10);
-      color: rgba(15,23,42,.75);
-    }
-
-    .navbtns{
-      position:absolute;
       left: 14px;
-      top: 14px;
+      right: 14px;
       display:flex;
-      gap: 8px;
-      z-index: 45;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      z-index: 25;
     }
+
     .btn{
       appearance:none;
-      border: 1px solid rgba(15,23,42,.12);
-      background: rgba(255,255,255,.75);
-      color: rgba(15,23,42,.75);
+      border: 1px solid rgba(27,27,31,.14);
+      background: rgba(255,255,255,.62);
+      color: rgba(27,27,31,.78);
       border-radius: 999px;
-      padding: 8px 10px;
+      padding: 8px 12px;
       font-size: 12px;
       cursor:pointer;
       backdrop-filter: blur(8px);
     }
 
-    /* State machine styles */
+    .pager{
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.55);
+      border: 1px solid rgba(27,27,31,.12);
+      color: rgba(27,27,31,.70);
+      user-select:none;
+    }
+
+    /* =========================
+       State-driven styling
+       ========================= */
+
+    /* closed: flap down, letters hidden */
     body[data-state="closed"] .flap{ transform: rotateX(0deg); }
+    body[data-state="closed"] .letters{
+      transform: translateY(-38px);
+      opacity: 0;
+    }
+
+    /* opened: flap up, letters peek */
     body[data-state="opened"] .flap{ transform: rotateX(140deg); }
+    body[data-state="opened"] .letters{
+      opacity: 1;
+      transform: translateY(-18px);
+    }
+
+    /* pulling: we will set letters translateY via JS “scrub” */
+    body[data-state="pulling"] .flap{ transform: rotateX(140deg); }
+    body[data-state="pulling"] .letters{ opacity:1; }
+
+    /* pulled: letters fully out, still folded */
     body[data-state="pulled"] .flap{ transform: rotateX(140deg); }
-    body[data-state="unfolded"] .flap{ transform: rotateX(140deg); }
 
-    body[data-state="closed"] .letters{ transform: translateY(0px); }
-    body[data-state="opened"] .letters{ transform: translateY(-22px); }  /* slightly visible */
-    body[data-state="pulled"] .letters{ transform: translateY(140px); }  /* slide out */
-    body[data-state="unfolded"] .stack{ transform: translateY(80px) scale(.92); opacity:.0; transition: opacity 240ms ease, transform var(--anim) cubic-bezier(.2,.9,.2,1); }
+    /* unfold: envelope fades back */
+    body[data-state="unfolding"] .envelope,
+    body[data-state="unfolded"] .envelope{
+      opacity: 0;
+      transform: translateY(16px) scale(.96);
+      transition: opacity 260ms ease, transform 520ms cubic-bezier(.2,.9,.2,1);
+      pointer-events:none;
+    }
+    body[data-state="unfolding"] .letters,
+    body[data-state="unfolded"] .letters{
+      opacity: 0;
+      transition: opacity 220ms ease;
+    }
 
-    /* Accessibility helpers */
-    .sr-only{
-      position:absolute;
-      width:1px; height:1px;
-      padding:0; margin:-1px;
-      overflow:hidden; clip:rect(0,0,0,0);
-      white-space:nowrap; border:0;
+    @media (max-width: 720px){
+      .stack{ transform: scale(.9); }
+      .page{ padding: 56px 22px 28px; }
+      .page h1{ font-size: 26px; }
+      .page p{ font-size: 15px; }
     }
   </style>
 </head>
 
 <body data-state="closed">
   <div class="app">
-    <div class="phone" id="phone">
-      <div class="topbar">
-        <div class="badge" id="stateBadge">State: closed</div>
-        <div class="badge" id="gestureBadge">Gesture: —</div>
+    <div class="canvas" id="canvas">
+      <div class="hud">
+        <div class="pill" id="statePill">State: closed</div>
+        <div class="pill" id="gesturePill">Gesture: —</div>
       </div>
 
       <div class="stage">
         <div class="stack" id="stack">
-          <div class="letters" id="letters">
-            <div class="sheet">
-              <div class="fold-line"></div>
-            </div>
-            <div class="sheet">
-              <div class="fold-line"></div>
-            </div>
-            <div class="sheet">
-              <div class="fold-line"></div>
-            </div>
+          <!-- Letters (folded) -->
+          <div class="letters" id="letters" aria-hidden="true">
+            <div class="sheet"><div class="lines"></div></div>
+            <div class="sheet"><div class="lines"></div></div>
+            <div class="sheet"><div class="lines"></div></div>
           </div>
 
-          <div class="envelope" id="envelope" role="button" aria-label="Open the envelope" tabindex="0">
+          <!-- Envelope -->
+          <div class="envelope" id="envelope" role="button" tabindex="0" aria-label="Open envelope">
             <div class="flap"></div>
-            <div class="seal" aria-hidden="true"></div>
             <div class="env-front"></div>
-            <span class="sr-only">Tap to open envelope</span>
+            <div class="env-lip"></div>
           </div>
         </div>
       </div>
 
-      <!-- Full-page letter viewer -->
+      <!-- Full page viewer -->
       <div class="viewer" id="viewer">
-        <div class="navbtns">
-          <button class="btn" id="backBtn">Back</button>
-          <button class="btn" id="resetBtn">Reset</button>
+        <div class="top-controls">
+          <div style="display:flex; gap:8px;">
+            <button class="btn" id="backBtn">Back</button>
+            <button class="btn" id="resetBtn">Reset</button>
+          </div>
+          <div class="pager" id="pager">1 / 3</div>
         </div>
-        <div class="pager" id="pager">1 / 3</div>
 
         <div class="pages" id="pages">
           <section class="page">
-            <h1>Your first page ✨</h1>
-            <p>
-              Replace this text with your message. This is the page shown after the letter unfolds.
-            </p>
-            <p>
-              Swipe <b>left/right</b> to change pages. Use <b>Back</b> to return to the envelope.
-            </p>
+            <h1>Page 1</h1>
+            <p>This is the first page shown after the letters unfold. Replace this with your main message.</p>
+            <p>Swipe left/right to change pages.</p>
           </section>
 
           <section class="page">
-            <h1>Second page</h1>
-            <p>
-              Put more content here—photos, memories, or a longer note.
-            </p>
-            <p>
-              Tip: You can style this like handwriting by changing the font.
-            </p>
+            <h1>Page 2</h1>
+            <p>Second page content — photos, memories, or a longer note.</p>
           </section>
 
           <section class="page">
-            <h1>Third page</h1>
-            <p>
-              Final page. Add a signature, date, or call-to-action here.
-            </p>
+            <h1>Page 3</h1>
+            <p>Final page — signature, date, or closing line.</p>
           </section>
         </div>
       </div>
 
       <div class="hint" id="hint">
-        <b>How to interact</b><br/>
-        Tap envelope → scroll down (drag down) to pull letters → swipe up to unfold → swipe left/right for pages.
+        Tap envelope → scroll/drag down to pull letters → swipe up to unfold → swipe left/right to change page
       </div>
     </div>
   </div>
@@ -373,24 +409,39 @@
   <script>
     (function(){
       const body = document.body;
+
       const envelope = document.getElementById('envelope');
+      const letters = document.getElementById('letters');
+
       const viewer = document.getElementById('viewer');
       const pages = document.getElementById('pages');
       const pager = document.getElementById('pager');
-      const stateBadge = document.getElementById('stateBadge');
-      const gestureBadge = document.getElementById('gestureBadge');
+
+      const statePill = document.getElementById('statePill');
+      const gesturePill = document.getElementById('gesturePill');
       const hint = document.getElementById('hint');
+
       const backBtn = document.getElementById('backBtn');
       const resetBtn = document.getElementById('resetBtn');
-      const phone = document.getElementById('phone');
+      const canvas = document.getElementById('canvas');
 
-      let state = body.dataset.state; // closed | opened | pulled | unfolded
-      let pageIndex = 0;              // 0..2
+      // States: closed -> opened -> pulling -> pulled -> unfolding -> unfolded
+      let state = body.dataset.state;
+      let pageIndex = 0;
+
+      // Pull “scrub” progress 0..1 (0=peek, 1=fully out)
+      let pull = 0;
+
+      // Tune distances to match reference proportions
+      const PEEK_Y = -18;        // opened peek position
+      const PULL_DISTANCE = 170; // how far letters slide out
+
+      function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
 
       function setState(next){
         state = next;
         body.dataset.state = next;
-        stateBadge.textContent = `State: ${next}`;
+        statePill.textContent = `State: ${next}`;
         hint.classList.toggle('hidden', next === 'unfolded');
         if(next === 'unfolded'){
           viewer.classList.add('active');
@@ -399,65 +450,120 @@
         }
       }
 
-      function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
-
       function setPage(i){
         pageIndex = clamp(i, 0, 2);
         pages.style.transform = `translateX(-${pageIndex * 33.3333}%)`;
         pager.textContent = `${pageIndex + 1} / 3`;
       }
 
+      function applyPull(){
+        // letters translate: peek + pullDistance * pull
+        const y = PEEK_Y + (PULL_DISTANCE * pull);
+        letters.style.transform = `translateY(${y}px)`;
+        letters.style.opacity = 1;
+      }
+
       function resetAll(){
+        pull = 0;
+        letters.style.transform = '';
+        letters.style.opacity = '';
         setPage(0);
         setState('closed');
+        gesturePill.textContent = 'Gesture: —';
       }
 
-      // Envelope open via click/keyboard
+      // ===== Interaction 1: Tap to open =====
       function openEnvelope(){
-        if(state === 'closed') setState('opened');
+        if(state === 'closed'){
+          gesturePill.textContent = 'Gesture: tap';
+          setState('opened');
+          pull = 0;
+          applyPull();
+        }
       }
-
       envelope.addEventListener('click', openEnvelope);
       envelope.addEventListener('keydown', (e)=>{
         if(e.key === 'Enter' || e.key === ' ') openEnvelope();
       });
 
-      backBtn.addEventListener('click', ()=>{
-        // Go back to pulled state so user can re-unfold by swiping up again
-        setState('pulled');
-      });
+      // ===== Interaction 2: Scroll/drag down to pull letters out =====
+      // Wheel / trackpad
+      window.addEventListener('wheel', (e)=>{
+        // Only react when opened/pulling/pulled and not unfolded
+        if(state !== 'opened' && state !== 'pulling' && state !== 'pulled') return;
 
-      resetBtn.addEventListener('click', resetAll);
+        // We interpret positive deltaY as “scroll down”
+        const dy = e.deltaY;
 
-      // Gesture handling (touch + mouse)
-      let startX = 0, startY = 0, lastX = 0, lastY = 0;
+        // prevent page scroll
+        e.preventDefault();
+
+        // If already pulled, allow small reverse with scroll up
+        if(state === 'pulled' && dy < 0){
+          gesturePill.textContent = 'Gesture: scroll up';
+          setState('pulling');
+        }
+
+        if(state === 'opened') setState('pulling');
+
+        // Normalize dy (trackpads can be small)
+        pull = clamp(pull + (dy / 700), 0, 1);
+        gesturePill.textContent = dy > 0 ? 'Gesture: scroll down' : 'Gesture: scroll up';
+        applyPull();
+
+        // Snap to pulled when threshold reached
+        if(pull >= 1){
+          pull = 1;
+          applyPull();
+          setState('pulled');
+        } else if(pull <= 0 && state !== 'opened'){
+          pull = 0;
+          applyPull();
+          setState('opened');
+        }
+      }, { passive:false });
+
+      // Touch/mouse drag (down to pull)
       let isDown = false;
+      let startX = 0, startY = 0;
+      let lastX = 0, lastY = 0;
       let moved = false;
 
-      function onDown(x, y){
+      function onDown(x,y){
         isDown = true;
         moved = false;
         startX = lastX = x;
         startY = lastY = y;
       }
 
-      function onMove(x, y){
+      function onMove(x,y){
         if(!isDown) return;
+
         const dx = x - startX;
         const dy = y - startY;
         lastX = x; lastY = y;
-
         if(Math.abs(dx) > 6 || Math.abs(dy) > 6) moved = true;
 
-        // Simulate "scroll down" (pull letters) when state is opened
-        if(state === 'opened'){
-          if(dy > 60){
-            gestureBadge.textContent = 'Gesture: pull down';
-            setState('pulled');
+        // Pull letters by dragging down when opened/pulling
+        if(state === 'opened' || state === 'pulling' || state === 'pulled'){
+          // If in opened and user drags down, start pulling
+          if((state === 'opened' || state === 'pulled') && dy > 10){
+            setState('pulling');
+          }
+
+          if(state === 'pulling'){
+            // dy > 0 pulls out, dy < 0 pushes back
+            pull = clamp(dy / PULL_DISTANCE, 0, 1);
+            gesturePill.textContent = dy >= 0 ? 'Gesture: drag down' : 'Gesture: drag up';
+            applyPull();
+
+            if(pull >= 1){
+              pull = 1;
+              applyPull();
+              setState('pulled');
+            }
           }
         }
-
-        // When unfolded, we don't follow move; we just interpret swipe on release
       }
 
       function onUp(){
@@ -467,62 +573,85 @@
         const dx = lastX - startX;
         const dy = lastY - startY;
 
-        // If user didn't move, ignore
-        if(!moved){
-          gestureBadge.textContent = 'Gesture: tap';
+        // if no movement, ignore
+        if(!moved) return;
+
+        // ===== Interaction 3: Swipe up to unfold =====
+        if(state === 'pulled' && dy < -70 && Math.abs(dy) > Math.abs(dx)){
+          gesturePill.textContent = 'Gesture: swipe up';
+          setState('unfolding');
+
+          // Stagger feel: tiny delay before switching to viewer
+          setTimeout(()=>{
+            setState('unfolded');
+            setPage(0);
+          }, 260);
           return;
         }
 
-        // Swipe up to unfold after pulled
-        if(state === 'pulled' && dy < -60){
-          gestureBadge.textContent = 'Gesture: swipe up';
-          setState('unfolded');
-          return;
-        }
-
-        // Swipe left/right for pages when unfolded
-        if(state === 'unfolded' && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60){
-          if(dx < 0){
-            gestureBadge.textContent = 'Gesture: swipe left';
-            setPage(pageIndex + 1);
-          } else {
-            gestureBadge.textContent = 'Gesture: swipe right';
-            setPage(pageIndex - 1);
-          }
-          return;
-        }
-
-        // If user swipes down while pulled, let them "re-seat" letters (optional)
-        if(state === 'pulled' && dy > 80){
-          gestureBadge.textContent = 'Gesture: swipe down';
+        // allow returning to opened by dragging up a lot while pulling
+        if((state === 'pulling' || state === 'pulled') && dy > 80 && pull < 0.4){
+          pull = 0;
+          applyPull();
           setState('opened');
-          return;
         }
 
-        gestureBadge.textContent = 'Gesture: —';
+        // ===== Interaction 4: Swipe left/right pages (only unfolded) =====
+        if(state === 'unfolded' && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)){
+          if(dx < 0){
+            gesturePill.textContent = 'Gesture: swipe left';
+            if(pageIndex < 2) setPage(pageIndex + 1);
+            else bounceEdge();
+          }else{
+            gesturePill.textContent = 'Gesture: swipe right';
+            if(pageIndex > 0) setPage(pageIndex - 1);
+            else bounceEdge();
+          }
+        }
       }
 
-      // Touch
-      phone.addEventListener('touchstart', (e)=>{
+      function bounceEdge(){
+        // subtle “rubber band” on edges
+        pages.style.transition = 'transform 140ms ease';
+        const base = -pageIndex * 33.3333;
+        const nudge = pageIndex === 0 ? 2 : -2;
+        pages.style.transform = `translateX(calc(${base}% + ${nudge}px))`;
+        setTimeout(()=>{
+          pages.style.transition = 'transform 380ms cubic-bezier(.2,.9,.2,1)';
+          pages.style.transform = `translateX(${base}%)`;
+        }, 140);
+      }
+
+      canvas.addEventListener('touchstart', (e)=>{
         if(e.touches.length !== 1) return;
         const t = e.touches[0];
         onDown(t.clientX, t.clientY);
-      }, {passive:true});
+      }, { passive:true });
 
-      phone.addEventListener('touchmove', (e)=>{
+      canvas.addEventListener('touchmove', (e)=>{
         if(e.touches.length !== 1) return;
         const t = e.touches[0];
         onMove(t.clientX, t.clientY);
-      }, {passive:true});
+      }, { passive:true });
 
-      phone.addEventListener('touchend', onUp, {passive:true});
+      canvas.addEventListener('touchend', onUp, { passive:true });
 
-      // Mouse (desktop)
-      phone.addEventListener('mousedown', (e)=> onDown(e.clientX, e.clientY));
+      canvas.addEventListener('mousedown', (e)=> onDown(e.clientX, e.clientY));
       window.addEventListener('mousemove', (e)=> onMove(e.clientX, e.clientY));
       window.addEventListener('mouseup', onUp);
 
-      // Init
+      // Buttons
+      backBtn.addEventListener('click', ()=>{
+        // Back to “pulled” (still folded) to match the story
+        gesturePill.textContent = 'Gesture: back';
+        setState('pulled');
+        pull = 1;
+        applyPull();
+      });
+
+      resetBtn.addEventListener('click', resetAll);
+
+      // init
       setPage(0);
       setState('closed');
     })();
